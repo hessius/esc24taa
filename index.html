@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thoracic Aortic Aneurysm Management Calculator</title>
+    <style>
+         body {
+   font-family: Arial, sans-serif;
+   line-height: 1.6;
+   color: #333;
+   max-width: 800px;
+   margin: 0 auto;
+   padding: 20px;
+   background-color: #f4f4f4;
+ }
+
+ h1 {
+   color: #8458B3;
+   text-align: center;
+ }
+
+ form {
+   background-color: #fff;
+   padding: 20px;
+   border-radius: 8px;
+   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+ }
+
+ label {
+   display: block;
+   margin-top: 10px;
+   color: #8458B3;
+ }
+
+ input[type="number"],
+ select {
+   width: 100%;
+   padding: 8px;
+   margin-top: 5px;
+   border: 1px solid #ddd;
+   border-radius: 4px;
+   box-sizing: border-box;
+ }
+
+ #recommendation {
+   margin-top: 20px;
+   padding: 15px;
+   background-color: #e9e1f9;
+   border-radius: 8px;
+   border-left: 5px solid #8458B3;
+   text-align: center;
+   font-weight: bold;
+ }
+
+ .hidden {
+   display: none !important;
+ }
+
+ .source {
+   margin-top: 20px;
+   font-size: 0.9em;
+   text-align: center;
+ }
+
+ .checkbox-group {
+   margin-top: 10px;
+ }
+
+ .checkbox-group label {
+   display: inline-block;
+   margin-right: 15px;
+   color: #333;
+ }
+
+ .recommendation-item {
+   margin-bottom: 10px;
+ }
+
+ .recommendation-item:not(:last-child)::after {
+   content: '\2193';
+   display: block;
+   text-align: center;
+   font-size: 24px;
+   margin: 10px 0;
+ }
+
+ .class-i,
+ .class-iia,
+ .class-iib {
+   display: inline-block;
+   padding: 2px 8px;
+   border-radius: 12px;
+   font-weight: bold;
+ }
+
+ .class-i {
+   background-color: #4CAF50;
+   color: white;
+ }
+
+ .class-iia {
+   background-color: #FFEB3B;
+   color: black;
+ }
+
+ .class-iib {
+   background-color: #FF9800;
+   color: white;
+ }
+
+        </style>
+</head>
+<body>
+    <h1>ESC 2024 Thoracic Aortic Aneurysm Management Calculator</h1>
+    <form id="taaForm">
+      <label for="diameter">Aortic Diameter (mm):</label>
+      <input type="number" id="diameter" name="diameter" required min="0" step="0.1">
+
+      <div id="sexField" class="hidden">
+        <label for="sex">Sex:</label>
+        <select id="sex" name="sex">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+
+      <div id="growthRateField" class="hidden">
+        <label for="growthRate">Growth Rate (mm/y):</label>
+        <input type="number" id="growthRate" name="growthRate" step="0.1">
+      </div>
+
+      <div id="phenotypeField" class="hidden">
+        <label for="phenotype">Phenotype:</label>
+        <select id="phenotype" name="phenotype">
+          <option value="ascending">Ascending</option>
+          <option value="root">Root</option>
+        </select>
+      </div>
+
+      <div id="highRiskField" class="hidden">
+        <label>High-risk features:</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" name="highRisk" value="age"> Age &lt;50 years</label>
+          <label><input type="checkbox" name="highRisk" value="height"> Height &lt;1.69 m</label>
+          <label><input type="checkbox" name="highRisk" value="length"> Ascending length &gt;11 cm</label>
+          <label><input type="checkbox" name="highRisk" value="hypertension"> Uncontrolled hypertension</label>
+          <label><input type="checkbox" name="highRisk" value="coarctation"> Coarctation (BAV only)</label>
+          <label><input type="checkbox" name="highRisk" value="family"> Family history of acute aortic events (BAV only)</label>
+        </div>
+      </div>
+
+      <div id="valveTypeField" class="hidden">
+        <label for="valveType">Valve Type:</label>
+        <select id="valveType" name="valveType">
+          <option value="TAV">TAV (Tricuspid Aortic Valve)</option>
+          <option value="BAV">BAV (Bicuspid Aortic Valve)</option>
+        </select>
+      </div>
+    </form>
+
+    <div id="recommendation"></div>
+
+    <div class="source">
+      <p>Source: <a href="https://academic.oup.com/view-large/figure/479846310/ehae179f24.jpg" target="_blank">Figure 24</a> from the <a href="https://academic.oup.com/eurheartj/advance-article/doi/10.1093/eurheartj/ehae179/7738955?login=true#479846273" target="_blank">2024 ESC Guidelines for the management of peripheral arterial and aortic diseases</a></p>
+    </div>
+
+    <script>
+        const form = document.getElementById('taaForm');
+const recommendation = document.getElementById('recommendation');
+const sexField = document.getElementById('sexField');
+const growthRateField = document.getElementById('growthRateField');
+const phenotypeField = document.getElementById('phenotypeField');
+const highRiskField = document.getElementById('highRiskField');
+const valveTypeField = document.getElementById('valveTypeField');
+
+form.addEventListener('input', updateRecommendation);
+
+function updateRecommendation() {
+  const diameter = parseFloat(document.getElementById('diameter').value);
+  const sex = document.getElementById('sex').value;
+  const growthRate = parseFloat(document.getElementById('growthRate').value);
+  const phenotype = document.getElementById('phenotype').value;
+  const valveType = document.getElementById('valveType').value;
+  const highRiskFeatures = Array.from(document.querySelectorAll('input[name="highRisk"]:checked')).map(el => el.value);
+
+  // Show/hide fields based on diameter
+  sexField.classList.toggle('hidden', diameter < 36 || diameter >= 40);
+  growthRateField.classList.toggle('hidden', diameter < 36 || diameter >= 53);
+  phenotypeField.classList.toggle('hidden', diameter < 50 || diameter >= 55);
+  highRiskField.classList.toggle('hidden', diameter < 50 || diameter >= 53 || phenotype !== 'ascending');
+  valveTypeField.classList.toggle('hidden', (diameter < 50 || diameter >= 55) || (diameter >= 50 && phenotype !== 'root'));
+
+  let recommendations = [];
+
+  if (diameter < 36) {
+    recommendations.push('<p>No dilation.');
+  } else if (diameter >= 36 && diameter < 40) {
+    if (sex === 'female') {
+      recommendations.push('<p>Baseline CCT/CMR and reimage by TTE in one year.</p>');
+      if (!isNaN(growthRate)) {
+        if (growthRate < 3) {
+          recommendations.push('<p>Reimage by TTE every 2 or 3 years.</p>');
+        } else {
+          recommendations.push('<p>Confirm by CCT or CMR.</p>');
+          recommendations.push('<p>Reimage every 6 months.</p>');
+        }
+      }
+    } else {
+      recommendations.push('<p>No dilation.');
+    }
+  } else if (diameter >= 40 && diameter < 45) {
+    recommendations.push('<p>Baseline CCT/CMR and reimage by TTE in one year.</p>');
+    if (!isNaN(growthRate)) {
+      if (growthRate < 3) {
+        recommendations.push('<p>Reimage by TTE every 2 or 3 years.</p>');
+      } else {
+        recommendations.push('<p>Confirm by CCT or CMR.</p>');
+        recommendations.push('<p>Reimage every 6 months.</p>');
+      }
+    }
+  } else if (diameter >= 45 && diameter < 50) {
+    recommendations.push('<p>Confirm by CCT or CMR.</p>');
+    if (!isNaN(growthRate)) {
+      if (growthRate < 3) {
+        recommendations.push('<p>Reimage by TTE yearly.</p>');
+      } else {
+        recommendations.push('<p>Reimage by TTE every 6 months.</p>');
+      }
+    } else {
+      recommendations.push('<p>Reimage by TTE yearly.</p>');
+    }
+  } else if (diameter >= 50 && diameter < 53) {
+    recommendations.push('<p>Confirm by CCT or CMR.</p>');
+    if (phenotype === 'ascending') {
+      if (highRiskFeatures.length > 0) {
+        recommendations.push('<p>Surgery if low operative risk <span class="class-iib">Class IIb</span> otherwise reimage every 6 months.</p>');
+      } else {
+        recommendations.push('<p>Reimage by CCT/CMR 6 months later to define projected growth rate.</p>');
+        if (!isNaN(growthRate)) {
+          if (growthRate < 3) {
+            recommendations.push('<p>Reimage every 6 months.</p>');
+          } else {
+            recommendations.push('<p>Surgery if low operative risk <span class="class-iib">Class IIb</span> otherwise reimage every 6 months.</p>');
+          }
+        }
+      }
+    } else if (phenotype === 'root') {
+      if (valveType === 'TAV') {
+        recommendations.push('<p>Surgery if low operative risk <span class="class-iib">Class IIb</span> otherwise reimage every 6 months.</p>');
+      } else if (valveType === 'BAV') {
+        recommendations.push('<p>Surgery <span class="class-i">Class I</span>.</p>');
+      }
+    }
+  } else if (diameter >= 53 && diameter < 55) {
+    recommendations.push('<p>Confirm by CCT or CMR.</p>');
+    if (phenotype === 'root') {
+      if (valveType === 'TAV') {
+        recommendations.push('<p>Surgery if low operative risk <span class="class-iib">Class IIb</span> otherwise reimage every 6 months.</p>');
+      } else if (valveType === 'BAV') {
+        recommendations.push('<p>Surgery <span class="class-i">Class I</span>.</p>');
+      }
+    } else {
+      recommendations.push('<p>Surgery if low risk <span class="class-iia">Class IIa</span>, otherwise reimage every 6 months.</p>');
+    }
+  } else if (diameter >= 55) {
+    recommendations.push('<p>Confirm by CCT or CMR.</p>');
+    recommendations.push('<p>Surgery <span class="class-i">Class I</span>.</p>');
+  }
+
+  recommendation.innerHTML = recommendations.map(rec => `<div class="recommendation-item">${rec}</div>`).join('');
+}
+
+// Initial update
+updateRecommendation();
+sexField.classList.add('hidden');
+growthRateField.classList.add('hidden');
+phenotypeField.classList.add('hidden');
+highRiskField.classList.add('hidden');
+valveTypeField.classList.add('hidden');
+
+    </script>
+</body>
